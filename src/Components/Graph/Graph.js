@@ -52,11 +52,16 @@ const Graph = ({ graphData }) => {
     setCyInstance(cy);
 
     cy.on("tap", "edge, node", (e) => {
-      const ele = e.target;
-      const { x, y } = e.renderedPosition;
-      setSelectedElement(ele);
-      setDeletePosition({ x, y });
-    });
+  const ele = e.target;
+
+  console.log("Tapped element:", ele.id(), "isNode:", ele.isNode(), "Outgoing edges:", ele.outgoers('edge').length, ele.incomers('edge').length);
+
+  if (ele.isParent()) return;
+
+  const { x, y } = e.renderedPosition;
+  setSelectedElement(ele);
+  setDeletePosition({ x, y });
+});
 
     cy.on("tap", (e) => {
       if (e.target === cy) {
@@ -70,15 +75,33 @@ const Graph = ({ graphData }) => {
   const handleDelete = () => {
     if (selectedElement) {
       const json = selectedElement.json();
+  
       if (selectedElement.isEdge()) {
         setDeletedEdges((prev) => [...prev, json]);
+        selectedElement.remove();
       } else if (selectedElement.isNode()) {
         setDeletedNodes((prev) => [...prev, json]);
+  
+        const parentId = selectedElement.data("parent");
+        selectedElement.remove();
+  
+        // After removing the child, check if parent has any children left
+        if (parentId && cyInstance) {
+          const parent = cyInstance.getElementById(parentId);
+          const remainingChildren = parent.children();
+  
+          if (remainingChildren.length === 0) {
+            setDeletedNodes((prev) => [...prev, parent.json()]);
+            parent.remove();
+            console.log(`Deleted parent node ${parentId} as it had no children left.`);
+          }
+        }
       }
-      selectedElement.remove();
+  
       setSelectedElement(null);
     }
   };
+  
 
   return (
     <div className="position-relative" ref={containerRef}>
