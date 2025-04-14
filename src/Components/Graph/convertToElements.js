@@ -1,30 +1,36 @@
+const convertToElements = (graphData) => {
+  const elements = [];
 
-const convertToElements = (data) => {
-  const nodes = data.map((node) => ({
-    data: {
-      id: node.node_name,
-      label: node.node_name,
-      parent1: node.parent1,
-      xyz: node.xyz,
-    },
-  }));
+  // First, add a set of all unique parents
+  const parentSet = new Set(graphData.map((node) => node.parent1));
+  parentSet.forEach((parentName) => {
+    elements.push({
+      data: { id: parentName },
+      classes: "parent",
+    });
+  });
 
-  const edges = [];
+  // Add nodes and edges
+  graphData.forEach((node) => {
+    elements.push({
+      data: {
+        id: node.node_name,
+        parent: node.parent1,
+      },
+    });
 
-  data.forEach((node) => {
     node.connects_to.forEach((target) => {
-      edges.push({
+      elements.push({
         data: {
           id: `${node.node_name}-${target}`,
           source: node.node_name,
-          target,
+          target: target,
         },
       });
     });
   });
-  console.log("edges", edges);
-  console.log("nodes", nodes);
-  return [...nodes, ...edges];
+
+  return elements;
 };
 
 export default convertToElements;

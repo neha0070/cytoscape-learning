@@ -1,20 +1,34 @@
 import React, { useEffect, useRef } from "react";
 import cytoscape from "cytoscape";
+import fcose from "cytoscape-fcose";
 import "./Graph.css";
-import convertToElements from "./convertToElements.js"; // Import the convertToElements function
+import convertToElements from "./convertToElements.js";
 
-const Graph = ({graphData}) => {
-  const cyRef = useRef(null); // Create a ref to the div
-  
-  
+cytoscape.use(fcose);
+
+const parentColors = {
+  Voice: "#ffe0e0",
+  Bixby: "#e0f7fa",
+  NLP: "#e8f5e9",
+  Models: "#f3e5f5",
+  Features: "#fff3e0",
+  UI: "#ede7f6",
+  APIs: "#fbe9e7",
+  Databases: "#e1f5fe",
+  DevOps: "#f9fbe7",
+  Security: "#fce4ec",
+  BackgroundJobs: "#f1f8e9",
+};
+
+const Graph = ({ graphData }) => {
+  const cyRef = useRef(null);
 
   useEffect(() => {
-    // Initialize Cytoscape only once when the component mounts
-    cytoscape({
-      container: cyRef.current, // use ref instead of document.getElementById
+    const elements = convertToElements(graphData);
 
-      elements: convertToElements(graphData), // Convert the graph data to Cytoscape elements
-
+    const cy = cytoscape({
+      container: cyRef.current,
+      elements,
       style: [
         {
           selector: "node",
@@ -34,6 +48,21 @@ const Graph = ({graphData}) => {
           },
         },
         {
+          selector: ":parent",
+          style: {
+            "background-color": ele => parentColors[ele.id()] || "#eee",
+            "border-width": 2,
+            "border-color": "#444",
+            "label": "data(id)",
+            "text-valign": "top",
+            "text-halign": "center",
+            "font-size": "14px",
+            "text-wrap": "wrap",
+            shape: "roundrectangle",
+            padding: "30px",
+          },
+        },
+        {
           selector: "edge",
           style: {
             width: 2,
@@ -44,15 +73,23 @@ const Graph = ({graphData}) => {
           },
         },
       ],
-
       layout: {
-        name: "grid",
-        rows: 1,
+        name: "fcose",
+        animate: true,
+        randomize: true,
+        fit: true,
+        padding: 30,
+        nodeSeparation: 100,
+        quality: "default",
       },
     });
-  }, []);
 
-  return <div id="cy" ref={cyRef}></div>; // This is where Cytoscape will mount
+    return () => {
+      cy.destroy();
+    };
+  }, [graphData]);
+
+  return <div id="cy" ref={cyRef} ></div>;
 };
 
 export default Graph;
