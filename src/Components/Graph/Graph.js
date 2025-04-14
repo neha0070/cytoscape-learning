@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import cytoscape from "cytoscape";
 import "./Graph.css";
-import convertToElements from "./tempFunctions/convertToElements.js"; // Import the convertToElements function
+import convertToElements from "./convertToElements.js"; // Import the convertToElements function
 
 const Graph = ({graphData}) => {
   const cyRef = useRef(null); // Create a ref to the div
