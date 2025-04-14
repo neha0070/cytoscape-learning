@@ -5,21 +5,21 @@ import Graph from './Components/Graph/Graph';
 function App() {
   const graphData = [
     {
-      node_name: "a",
-      connects_to: ["b", "c"],
-      parent1: "root",
+      node_name: "voice",
+      connects_to: ["bixby", "bixby-prov"],
+      parent1: "voice",
       xyz: "alpha",
     },
     {
-      node_name: "b",
-      connects_to: ["c"],
-      parent1: "a",
+      node_name: "bixby",
+      connects_to: ["bixby-prov"],
+      parent1: "Bixby",
       xyz: "beta",
     },
     {
-      node_name: "c",
+      node_name: "bixby-prov",
       connects_to: [],
-      parent1: "a",
+      parent1: "Bixby",
       xyz: "gamma",
     },
   ];
