@@ -1,95 +1,103 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import cytoscape from "cytoscape";
 import fcose from "cytoscape-fcose";
 import "./Graph.css";
-import convertToElements from "./convertToElements.js";
-
+import convertToElements from "../../utils/convertToElements.js";
+import getCyStyles from "./cyStyles";
+import { generateColor } from "../../utils/colorUtils.js";
+import fcoseLayoutConfig from "../../config/fcoseLayoutConfig.js";
 cytoscape.use(fcose);
 
-const parentColors = {
-  Voice: "#ffe0e0",
-  Bixby: "#e0f7fa",
-  NLP: "#e8f5e9",
-  Models: "#f3e5f5",
-  Features: "#fff3e0",
-  UI: "#ede7f6",
-  APIs: "#fbe9e7",
-  Databases: "#e1f5fe",
-  DevOps: "#f9fbe7",
-  Security: "#fce4ec",
-  BackgroundJobs: "#f1f8e9",
-};
+// const parentColors = {
+//   Voice: "#ffe0e0",
+//   Bixby: "#e0f7fa",
+//   NLP: "#e8f5e9",
+//   Models: "#f3e5f5",
+//   Features: "#fff3e0",
+//   UI: "#ede7f6",
+//   APIs: "#fbe9e7",
+//   Databases: "#e1f5fe",
+//   DevOps: "#f9fbe7",
+//   Security: "#fce4ec",
+//   BackgroundJobs: "#f1f8e9",
+// };
 
 const Graph = ({ graphData }) => {
   const cyRef = useRef(null);
+  const containerRef = useRef(null);
+  const [cyInstance, setCyInstance] = useState(null);
+  const [selectedElement, setSelectedElement] = useState(null);
+  const [deletePosition, setDeletePosition] = useState({ x: 0, y: 0 });
+  const [deletedEdges, setDeletedEdges] = useState([]);
+  const [deletedNodes, setDeletedNodes] = useState([]);
+
+  function getParentColors(graphData) {
+    const uniqueParents = [...new Set(graphData.map((node) => node.parent1))];
+    const mapping = {};
+    uniqueParents.forEach((parent, index) => {
+      mapping[parent] = generateColor(index);
+    });
+    return mapping;
+  }
 
   useEffect(() => {
-    const elements = convertToElements(graphData);
-
+    const parentColors = getParentColors(graphData);
     const cy = cytoscape({
       container: cyRef.current,
-      elements,
-      style: [
-        {
-          selector: "node",
-          style: {
-            "background-color": "#61bffc",
-            label: "data(id)",
-            "text-valign": "center",
-            "text-halign": "center",
-            "font-size": "12px",
-            color: "#000",
-            width: "label",
-            height: "label",
-            padding: "10px",
-            "border-width": 2,
-            "border-color": "#333",
-            shape: "roundrectangle",
-          },
-        },
-        {
-          selector: ":parent",
-          style: {
-            "background-color": ele => parentColors[ele.id()] || "#eee",
-            "border-width": 2,
-            "border-color": "#444",
-            "label": "data(id)",
-            "text-valign": "top",
-            "text-halign": "center",
-            "font-size": "14px",
-            "text-wrap": "wrap",
-            shape: "roundrectangle",
-            padding: "30px",
-          },
-        },
-        {
-          selector: "edge",
-          style: {
-            width: 2,
-            "line-color": "#ccc",
-            "target-arrow-color": "#ccc",
-            "target-arrow-shape": "triangle",
-            "curve-style": "bezier",
-          },
-        },
-      ],
-      layout: {
-        name: "fcose",
-        animate: true,
-        randomize: true,
-        fit: true,
-        padding: 30,
-        nodeSeparation: 100,
-        quality: "default",
-      },
+      elements: convertToElements(graphData),
+      style: getCyStyles(parentColors),
+      layout: fcoseLayoutConfig,
     });
 
-    return () => {
-      cy.destroy();
-    };
+    setCyInstance(cy);
+
+    cy.on("tap", "edge, node", (e) => {
+      const ele = e.target;
+      const { x, y } = e.renderedPosition;
+      setSelectedElement(ele);
+      setDeletePosition({ x, y });
+    });
+
+    cy.on("tap", (e) => {
+      if (e.target === cy) {
+        setSelectedElement(null);
+      }
+    });
+
+    return () => cy.destroy();
   }, [graphData]);
 
-  return <div id="cy" ref={cyRef} ></div>;
+  const handleDelete = () => {
+    if (selectedElement) {
+      const json = selectedElement.json();
+      if (selectedElement.isEdge()) {
+        setDeletedEdges((prev) => [...prev, json]);
+      } else if (selectedElement.isNode()) {
+        setDeletedNodes((prev) => [...prev, json]);
+      }
+      selectedElement.remove();
+      setSelectedElement(null);
+    }
+  };
+
+  return (
+    <div className="position-relative" ref={containerRef}>
+      <div id="cy" ref={cyRef} />
+      {selectedElement && (
+        <button
+          onClick={handleDelete}
+          className="btn btn-danger graph-delete-btn"
+          style={{ left: deletePosition.x, top: deletePosition.y }}
+        >
+          Delete {selectedElement.isEdge() ? "Edge" : "Node"}
+        </button>
+      )}
+      <div className="debug-info">
+        <strong>Deleted Edges:</strong> {deletedEdges.length} <br />
+        <strong>Deleted Nodes:</strong> {deletedNodes.length}
+      </div>
+    </div>
+  );
 };
 
 export default Graph;
